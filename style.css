@@ -1,0 +1,108 @@
+/* 全局样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 主容器 */
+.container {
+    background-color: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+}
+
+/* 标题 */
+h2 {
+    text-align: center;
+    color: #1a2b48;
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-weight: 600;
+}
+
+h3 {
+    color: #4a5568;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    font-size: 16px;
+}
+
+/* 文本输入框 */
+textarea {
+    width: 100%;
+    height: 200px;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    resize: vertical; /* 允许用户垂直调整大小 */
+    line-height: 1.5;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+/* 按钮网格布局 */
+.btn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+/* 按钮通用样式 */
+button {
+    background-color: #4a5568;
+    color: white;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background-color: #2d3748;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* 特殊颜色的按钮 */
+.btn-secondary { background-color: #3182ce; }
+.btn-secondary:hover { background-color: #2b6cb0; }
+
+.btn-danger { background-color: #e53e3e; }
+.btn-danger:hover { background-color: #c53030; }
+
+/* 禁用的按钮 */
+button:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 底部签名 */
+.footer {
+    text-align: center;
+    margin-top: 32px;
+    color: #a0aec0;
+    font-size: 12px;
+}
