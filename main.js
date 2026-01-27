@@ -19,57 +19,42 @@ document.addEventListener('DOMContentLoaded', () => {
     function randomString(length) { let result = ''; const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; for (let i = 0; i < length; i++) { result += characters.charAt(Math.floor(Math.random() * characters.length)); } return result; }
     function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
 
-    // ====================  ↓↓↓ 【真理】根据你给的答案，重铸核心 ↓↓↓ ====================
+    // ====================  ↓↓↓ 【最终的答案】完全移植你找到的正确代码 ↓↓↓ ====================
     /**
      * 预处理Key和IV的函数
      * 遵循“不够补0，并转为WordArray”的原则
      */
     function processKeyToWords(keyString) {
-        // 先补足16位，再转换为CryptoJS内部的WordArray格式
         return CryptoJS.enc.Utf8.parse(keyString.toString().padEnd(16, '0'));
     }
 
     /**
-     * 标准AES加密
-     * 【已重铸】完全遵循“活的”参考答案
+     * 标准AES加密 (移植自正确答案)
      */
     function encryptAes(data, keyString, ivString) {
-        // 1. 【Key处理】使用正确的规则处理Key和IV
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
-
-        // 2. 【执行加密】直接传入明文字符串
         const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
-        
-        // 3. 【格式转换】返回纯粹的、Hex格式的密文主体
         return encrypted.ciphertext.toString(CryptoJS.enc.Hex);
     }
 
     /**
-     * 标准AES解密
-     * 【已重铸】完全遵循“活的”参考答案
+     * 标准AES解密 (移植自正确答案)
      */
     function decryptAes(ciphertext, keyString, ivString) {
         try {
-            // 1. 【Key处理】使用正确的规则处理Key和IV
             const key = processKeyToWords(keyString);
             const iv = processKeyToWords(ivString);
-
-            // 2. 【格式转换】将输入的Hex字符串，解析为二进制的密文
             const ciphertextWords = CryptoJS.enc.Hex.parse(ciphertext);
-
-            // 3. 【执行解密】
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
-            
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-            
             if (!decryptedText) return null;
             return decryptedText;
         } catch (e) {
             return null;
         }
     }
-    // ====================  ↑↑↑ 【真理】根据你给的答案，重铸核心 ↑↑↑ ====================
+    // ====================  ↑↑↑ 【最终的答案】完全移植你找到的正确代码 ↑↑↑ ====================
 
     // VOD相关函数保持我们之前最稳健的版本
     function encryptVod(plaintext) {
