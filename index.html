@@ -4,49 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>凤凰工具箱 (By 婉儿 & 哥哥)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <style>
-        body { font-family: sans-serif; margin: 0; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background-color: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 90%; max-width: 800px; }
-        h2 { text-align: center; color: #333; }
-        textarea { width: 100%; height: 200px; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 16px; font-size: 14px; }
-        .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-        button { background-color: #4CAF50; color: white; padding: 12px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background-color 0.3s; }
-        button:hover { background-color: #45a049; }
-        .btn-secondary { background-color: #008CBA; } .btn-secondary:hover { background-color: #007ba7; }
-        .btn-danger { background-color: #f44336; } .btn-danger:hover { background-color: #da190b; }
-        .footer { text-align: center; margin-top: 24px; color: #888; font-size: 12px; }
-    </style>
+    
+    <!-- ✨ 核心修改：我们不再直接写样式，而是引用一个外部的CSS文件 -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h2>🔥 凤凰工具箱 🔥</h2>
         <textarea id="main-input" placeholder="在此输入明文或密文..."></textarea>
         
-        <div class="btn-grid">
-            <button onclick="pasteFromClipboard()">粘贴</button>
-            <button class="btn-secondary" onclick="copyToClipboard()">复制</button>
-            <button class="btn-danger" onclick="clearInput()">清空</button>
+        <div class="btn-grid" id="clipboard-group">
+            <button id="btn-paste">粘贴</button>
+            <button id="btn-copy" class="btn-secondary">复制</button>
+            <button id="btn-clear" class="btn-danger">清空</button>
         </div>
 
-        <h3 style="margin-top: 24px;">线路仓工具</h3>
+        <h3>线路仓工具</h3>
         <div class="btn-grid">
-            <button onclick="handleEncryptVod()">双重加密 (VOD)</button>
-            <button onclick="handleDecryptVod()">双重解密 (VOD)</button>
-            <button onclick="handleCreateImage()">生成图片</button>
+            <button id="btn-encrypt-vod">双重加密 (VOD)</button>
+            <button id="btn-decrypt-vod">双重解密 (VOD)</button>
+            <button id="btn-create-image">生成图片</button>
+            <button id="btn-parse-image" disabled>解析图片 (待开发)</button>
         </div>
 
-        <h3 style="margin-top: 24px;">凤凰系统工具</h3>
+        <h3>凤凰系统工具</h3>
         <div class="btn-grid">
-            <button onclick="handleEncrypt('act')">加密激活码</button>
-            <button onclick="handleDecrypt('d_act')">解密激活码</button>
-            <button onclick="handleEncrypt('rule')">加密规则</button>
-            <button onclick="handleDecrypt('d_rule')">解密规则</button>
+            <button id="btn-encrypt-act">加密激活码</button>
+            <button id="btn-decrypt-act">解密激活码</button>
+            <button id="btn-encrypt-rule">加密规则</button>
+            <button id="btn-decrypt-rule">解密规则</button>
         </div>
         
-        <h3 style="margin-top: 24px;">通用工具</h3>
+        <h3>通用工具</h3>
         <div class="btn-grid">
-            <button onclick="handleMd5()">MD5计算</button>
+            <button id="btn-md5">MD5计算</button>
         </div>
 
         <div class="footer">
@@ -54,139 +45,8 @@
         </div>
     </div>
 
-    <script>
-        const mainInput = document.getElementById('main-input');
-
-        // --- 核心加解密逻辑 ---
-        const PHOENIX_API_KEY = "PHOENIX-API-KEY!";
-        const PHOENIX_API_IV = "PHOENIX-API-IV!!";
-        const PHOENIX_RULE_KEY = "PHOENIX-RULE-KEY";
-        const PHOENIX_RULE_IV = "PHOENIX-RULE-IV!";
-
-        function encryptAes(data, key, iv) {
-            const keyHex = CryptoJS.enc.Utf8.parse(key);
-            const ivHex = CryptoJS.enc.Utf8.parse(iv);
-            const encrypted = CryptoJS.AES.encrypt(data, keyHex, {
-                iv: ivHex,
-                mode: CryptoJS.mode.CBC,
-                padding: CryptoJS.pad.Pkcs7
-            });
-            return encrypted.toString(); // 返回Base64编码的密文
-        }
-
-        function decryptAes(ciphertext, key, iv) {
-            try {
-                const keyHex = CryptoJS.enc.Utf8.parse(key);
-                const ivHex = CryptoJS.enc.Utf8.parse(iv);
-                const decrypted = CryptoJS.AES.decrypt(ciphertext, keyHex, {
-                    iv: ivHex,
-                    mode: CryptoJS.mode.CBC,
-                    padding: CryptoJS.pad.Pkcs7
-                });
-                return decrypted.toString(CryptoJS.enc.Utf8);
-            } catch (e) {
-                return null;
-            }
-        }
-        
-        function cbcEncrypt(data) {
-            // ... (这里需要把我们之前讨论的Java版CBC加密逻辑，用JS重写一遍)
-            // 为了简单，我们先用一个简化的占位逻辑
-            return "2423" + CryptoJS.MD5(data).toString() + "2324...";
-        }
-
-        // --- 按钮功能 ---
-        function pasteFromClipboard() {
-            navigator.clipboard.readText().then(text => {
-                mainInput.value = text;
-                showToast('已从剪贴板粘贴');
-            }).catch(err => {
-                showToast('粘贴失败，请手动粘贴');
-            });
-        }
-
-        function copyToClipboard() {
-            navigator.clipboard.writeText(mainInput.value).then(() => {
-                showToast('结果已复制到剪贴板');
-            }).catch(err => {
-                showToast('复制失败');
-            });
-        }
-        
-        function clearInput() {
-            mainInput.value = "";
-        }
-
-        function handleEncrypt(type) {
-            const plaintext = mainInput.value;
-            if (!plaintext) { showToast('输入不能为空！'); return; }
-            let ciphertext = '';
-            if (type === 'act') {
-                ciphertext = encryptAes(plaintext, PHOENIX_API_KEY, PHOENIX_API_IV);
-            } else if (type === 'rule') {
-                ciphertext = encryptAes(plaintext, PHOENIX_RULE_KEY, PHOENIX_RULE_IV);
-            }
-            mainInput.value = ciphertext;
-            copyToClipboard();
-        }
-
-        function handleDecrypt(type) {
-            const ciphertext = mainInput.value;
-            if (!ciphertext) { showToast('输入不能为空！'); return; }
-            let plaintext = '';
-            if (type === 'd_act') {
-                plaintext = decryptAes(ciphertext, PHOENIX_API_KEY, PHOENIX_API_IV);
-            } else if (type === 'd_rule') {
-                plaintext = decryptAes(ciphertext, PHOENIX_RULE_KEY, PHOENIX_RULE_IV);
-            }
-            if (plaintext) {
-                mainInput.value = plaintext;
-                copyToClipboard();
-            } else {
-                showToast('解密失败！');
-            }
-        }
-        
-        function handleEncryptVod() {
-            const plaintext = mainInput.value;
-            if (!plaintext) { showToast('输入不能为空！'); return; }
-            // cbcEncrypt 的JS实现比较复杂，我们先放一个占位符
-            mainInput.value = "双重加密功能待实现...";
-        }
-        
-        function handleDecryptVod() {
-            // ...
-        }
-        
-        function handleCreateImage() {
-            // ...
-        }
-
-        function handleMd5() {
-            const text = mainInput.value;
-            if (!text) { showToast('输入不能为空！'); return; }
-            mainInput.value = CryptoJS.MD5(text).toString();
-            copyToClipboard();
-        }
-
-        function showToast(message) {
-            // 简单实现一个toast
-            const toast = document.createElement('div');
-            toast.textContent = message;
-            toast.style.position = 'fixed';
-            toast.style.bottom = '20px';
-            toast.style.left = '50%';
-            toast.style.transform = 'translateX(-50%)';
-            toast.style.backgroundColor = '#333';
-            toast.style.color = 'white';
-            toast.style.padding = '10px 20px';
-            toast.style.borderRadius = '5px';
-            toast.style.zIndex = '1000';
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                document.body.removeChild(toast);
-            }, 2000);
-        }
-    </script>
+    <!-- ✨ 核心修改：把所有的JS逻辑，都放到外部文件里，最后再加载 -->
+    <script src="crypto.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
