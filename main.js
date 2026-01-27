@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function encryptAes(data, key, iv) { const keyHex = CryptoJS.enc.Utf8.parse(key); const ivHex = CryptoJS.enc.Utf8.parse(iv); const encrypted = CryptoJS.AES.encrypt(data, keyHex, { iv: ivHex, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }); return encrypted.toString(); }
     function decryptAes(ciphertext, key, iv) { try { const keyHex = CryptoJS.enc.Utf8.parse(key); const ivHex = CryptoJS.enc.Utf8.parse(iv); const decrypted = CryptoJS.AES.decrypt(ciphertext, keyHex, { iv: ivHex, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }); return decrypted.toString(CryptoJS.enc.Utf8); } catch (e) { return null; } }
 
-    // 加密函数保持不变，它的输出格式是正确的
+    // 加密函数保持不变，它的逻辑是稳健的
     function encryptVod(plaintext) {
         try {
             const key = randomString(16);
@@ -42,27 +42,32 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Encrypt VOD Error:", e); return null; }
     }
     
-    // 我们不需要“套娃”了，因为壳子的两个if是独立的
-    // btnEncryptVod 直接调用 encryptVod 即可
-    
-    // ====================  ↓↓↓ 【最终修正】解密函数100%复刻Java逻辑 ↓↓↓ ====================
+    // ====================  ↓↓↓ 【最终的救赎】解密函数回归本质 ↓↓↓ ====================
     function decryptVod(ciphertext) {
         try {
             if (!ciphertext.startsWith("2423")) return null;
 
-            // 1. 【100%复刻】将完整Hex字符串，强制用Latin1转成一个（可能损坏的）字符串
-            const decodedStr = CryptoJS.enc.Hex.parse(ciphertext).toString(CryptoJS.enc.Latin1).toLowerCase();
+            // 1. 【分离】精确分离出头部Hex
+            const headerEndIndex = ciphertext.indexOf("2324");
+            if (headerEndIndex === -1) return null;
+            const headerHex = ciphertext.substring(4, headerEndIndex);
 
-            // 2. 【100%复刻】从这个（可能损坏的）字符串中提取Key和IV
-            const key = decodedStr.substring(decodedStr.indexOf('$#') + 2, decodedStr.indexOf('#$')).padEnd(16, '0');
-            const iv = decodedStr.substring(decodedStr.length - 13).padEnd(16, '0');
+            // 2. 【解码】使用最安全的Latin1编码，将头部Hex解码为字符串
+            const headerStr = CryptoJS.enc.Hex.parse(headerHex).toString(CryptoJS.enc.Latin1);
 
-            // 3. 【100%复刻】从原始Hex字符串中，截取加密主体部分
-            const encryptedDataHex = ciphertext.substring(ciphertext.indexOf("2324") + 4, ciphertext.length - 26);
+            // 3. 【提取】从解码后的、绝对正确的头部字符串中，提取Key和IV
+            const key = headerStr.substring(headerStr.indexOf("$#") + 2, headerStr.indexOf("#$"));
+            const realIv = headerStr.substring(headerStr.length - 13);
+
+            // 健壮性检查
+            if (!key || key.length === 0 || realIv.length !== 13) return null;
+
+            // 4. 【解密】使用提取到的正确Key和IV，解密主体
+            const aesIv = realIv.padEnd(16, '0');
+            const encryptedDataHex = ciphertext.substring(headerEndIndex + 4, ciphertext.length - 26);
             
-            // 4. 【100%复刻】执行解密
             const keyWords = CryptoJS.enc.Utf8.parse(key);
-            const ivWords = CryptoJS.enc.Utf8.parse(iv);
+            const ivWords = CryptoJS.enc.Utf8.parse(aesIv);
             const encryptedWords = CryptoJS.enc.Hex.parse(encryptedDataHex);
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: encryptedWords }, keyWords, { iv: ivWords, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
@@ -74,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-    // ====================  ↑↑↑ 【最终修正】解密函数100%复刻Java逻辑 ↑↑↑ ====================
+    // ====================  ↑↑↑ 【最终的救赎】解密函数回归本质 ↑↑↑ ====================
 
     function createSteganographyImage(configText) { showToast("生成图片功能待实现..."); }
 
@@ -83,13 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopy.addEventListener('click', () => { if(mainInput.value) navigator.clipboard.writeText(mainInput.value).then(() => showToast('已复制')); });
     btnClear.addEventListener('click', () => mainInput.value = "");
 
-    // 加密按钮直接调用encryptVod，不再需要套娃
+    // 我们不再需要“套娃”，直接使用最根本的CBC加密
     btnEncryptVod.addEventListener('click', () => { 
         const result = encryptVod(mainInput.value);
         if (result) mainInput.value = result; else showToast('加密失败！');
     });
 
-    // 解密按钮直接调用新的、100%复刻的解密函数
+    // 解密按钮直接调用新的、回归本质的解密函数
     btnDecryptVod.addEventListener('click', () => {
         const r = decryptVod(mainInput.value);
         if (r) mainInput.value = r; else showToast('解密失败！');
