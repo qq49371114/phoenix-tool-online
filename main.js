@@ -19,11 +19,32 @@ document.addEventListener('DOMContentLoaded', () => {
     function randomString(length) { let result = ''; const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; for (let i = 0; i < length; i++) { result += characters.charAt(Math.floor(Math.random() * characters.length)); } return result; }
     function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
 
-    // --- 核心加解密函数 ---
-    function encryptAes(data, key, iv) { const keyHex = CryptoJS.enc.Utf8.parse(key); const ivHex = CryptoJS.enc.Utf8.parse(iv); const encrypted = CryptoJS.AES.encrypt(data, keyHex, { iv: ivHex, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }); return encrypted.toString(); }
-    function decryptAes(ciphertext, key, iv) { try { const keyHex = CryptoJS.enc.Utf8.parse(key); const ivHex = CryptoJS.enc.Utf8.parse(iv); const decrypted = CryptoJS.AES.decrypt(ciphertext, keyHex, { iv: ivHex, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }); return decrypted.toString(CryptoJS.enc.Utf8); } catch (e) { return null; } }
+    // ====================  ↓↓↓ 【最终修正】地基修复 ↓↓↓ ====================
+    /**
+     * 标准AES加密 (用于凤凰系统)
+     * 【已修正】明确将输入字符串解析为WordArray，消除编码歧义
+     */
+    function encryptAes(data, key, iv) {
+        const keyWords = CryptoJS.enc.Utf8.parse(key);
+        const ivWords = CryptoJS.enc.Utf8.parse(iv);
+        // ▼▼▼ 唯一的、关键的修正！▼▼▼
+        const dataWords = CryptoJS.enc.Utf8.parse(data);
+        const encrypted = CryptoJS.AES.encrypt(dataWords, keyWords, { iv: ivWords, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+        return encrypted.toString();
+    }
+    // ====================  ↑↑↑ 【最终修正】地基修复 ↑↑↑ ====================
 
-    // 加密函数保持不变，它的逻辑是稳健的
+    // 标准AES解密函数是正确的，无需修改
+    function decryptAes(ciphertext, key, iv) {
+        try {
+            const keyWords = CryptoJS.enc.Utf8.parse(key);
+            const ivWords = CryptoJS.enc.Utf8.parse(iv);
+            const decrypted = CryptoJS.AES.decrypt(ciphertext, keyWords, { iv: ivWords, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+            return decrypted.toString(CryptoJS.enc.Utf8);
+        } catch (e) { return null; }
+    }
+
+    // VOD相关函数保持我们之前最稳健的版本
     function encryptVod(plaintext) {
         try {
             const key = randomString(16);
@@ -42,69 +63,52 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Encrypt VOD Error:", e); return null; }
     }
     
-    // ====================  ↓↓↓ 【最终的救赎】解密函数回归本质 ↓↓↓ ====================
     function decryptVod(ciphertext) {
         try {
             if (!ciphertext.startsWith("2423")) return null;
-
-            // 1. 【分离】精确分离出头部Hex
             const headerEndIndex = ciphertext.indexOf("2324");
             if (headerEndIndex === -1) return null;
             const headerHex = ciphertext.substring(4, headerEndIndex);
-
-            // 2. 【解码】使用最安全的Latin1编码，将头部Hex解码为字符串
             const headerStr = CryptoJS.enc.Hex.parse(headerHex).toString(CryptoJS.enc.Latin1);
-
-            // 3. 【提取】从解码后的、绝对正确的头部字符串中，提取Key和IV
             const key = headerStr.substring(headerStr.indexOf("$#") + 2, headerStr.indexOf("#$"));
             const realIv = headerStr.substring(headerStr.length - 13);
-
-            // 健壮性检查
             if (!key || key.length === 0 || realIv.length !== 13) return null;
-
-            // 4. 【解密】使用提取到的正确Key和IV，解密主体
             const aesIv = realIv.padEnd(16, '0');
             const encryptedDataHex = ciphertext.substring(headerEndIndex + 4, ciphertext.length - 26);
-            
             const keyWords = CryptoJS.enc.Utf8.parse(key);
             const ivWords = CryptoJS.enc.Utf8.parse(aesIv);
             const encryptedWords = CryptoJS.enc.Hex.parse(encryptedDataHex);
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: encryptedWords }, keyWords, { iv: ivWords, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-
             if (!decryptedText) return null;
             return decryptedText;
-        } catch (e) {
-            console.error("Decrypt VOD Error:", e);
-            return null;
-        }
+        } catch (e) { console.error("Decrypt VOD Error:", e); return null; }
     }
-    // ====================  ↑↑↑ 【最终的救赎】解密函数回归本质 ↑↑↑ ====================
 
     function createSteganographyImage(configText) { showToast("生成图片功能待实现..."); }
 
-    // --- 事件监听绑定 ---
+    // --- 事件监听绑定 (恢复到最初的、最简单的逻辑) ---
     btnPaste.addEventListener('click', () => navigator.clipboard.readText().then(text => { mainInput.value = text; showToast('已粘贴'); }));
     btnCopy.addEventListener('click', () => { if(mainInput.value) navigator.clipboard.writeText(mainInput.value).then(() => showToast('已复制')); });
     btnClear.addEventListener('click', () => mainInput.value = "");
 
-    // 我们不再需要“套娃”，直接使用最根本的CBC加密
     btnEncryptVod.addEventListener('click', () => { 
         const result = encryptVod(mainInput.value);
         if (result) mainInput.value = result; else showToast('加密失败！');
     });
 
-    // 解密按钮直接调用新的、回归本质的解密函数
     btnDecryptVod.addEventListener('click', () => {
         const r = decryptVod(mainInput.value);
         if (r) mainInput.value = r; else showToast('解密失败！');
     });
 
-    // --- 其他按钮的事件监听保持不变 ---
     btnCreateImage.addEventListener('click', () => createSteganographyImage(mainInput.value));
+    
     btnEncryptAct.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); });
     btnDecryptAct.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
+    
     btnEncryptRule.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); });
     btnDecryptRule.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
+    
     btnMd5.addEventListener('click', () => { mainInput.value = CryptoJS.MD5(mainInput.value).toString(); });
 });
