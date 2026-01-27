@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function randomString(length) { let result = ''; const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; for (let i = 0; i < length; i++) { result += characters.charAt(Math.floor(Math.random() * characters.length)); } return result; }
     function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
 
-    // ====================  ↓↓↓ 【最终的答案】完全移植你找到的正确代码 ↓↓↓ ====================
+    // ====================  ↓↓↓ 【最终测试基准】移植自 mao.js 的正确代码 ↓↓↓ ====================
     /**
      * 预处理Key和IV的函数
      * 遵循“不够补0，并转为WordArray”的原则
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 标准AES加密 (移植自正确答案)
+     * 标准AES加密 (移植自 mao.js)
      */
     function encryptAes(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * 标准AES解密 (移植自正确答案)
+     * 标准AES解密 (移植自 mao.js)
      */
     function decryptAes(ciphertext, keyString, ivString) {
         try {
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-    // ====================  ↑↑↑ 【最终的答案】完全移植你找到的正确代码 ↑↑↑ ====================
+    // ====================  ↑↑↑ 【最终测试基准】移植自 mao.js 的正确代码 ↑↑↑ ====================
 
     // VOD相关函数保持我们之前最稳健的版本
     function encryptVod(plaintext) {
