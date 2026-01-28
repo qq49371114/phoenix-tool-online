@@ -154,72 +154,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- “配置转图片”隐写事件 ---
     
-    // 按钮点击触发文件选择
-    if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
-        imageFileInputEncode.click(); // 触发隐藏的文件输入框
-    });
+    // --- “配置转图片”隐写事件 ---
+// 按钮点击触发文件选择
+if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
+    imageFileInputEncode.click();
+});
 
-    // 文件选择后处理隐写
-    if(imageFileInputEncode) imageFileInputEncode.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+// 文件选择后处理隐写 (已添加二次 Base64 编码)
+if(imageFileInputEncode) imageFileInputEncode.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const textToHide = mainInput.value;
-        if (!textToHide) {
-            showToast('请先输入要隐藏的密文！');
-            return;
-        }
+    const textToHide = mainInput.value;
+    if (!textToHide) {
+        showToast('请先输入要隐藏的密文！');
+        return;
+    }
+    
+    // 关键修正：对 VOD 密文进行二次 Base64 编码
+    // Hex（VOD密文） -> WordArray -> Base64 String
+    const vodCipherWords = CryptoJS.enc.Utf8.parse(textToHide);
+    const secondaryBase64 = CryptoJS.enc.Base64.stringify(vodCipherWords);
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageBase64 = e.target.result.split(',')[1];
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // 1. 提取图片的 Base64 内容
-            const imageBase64 = e.target.result.split(',')[1];
-            
-            // 2. 拼接密文
-            const finalOutput = imageBase64 + "**" + textToHide;
+        // 拼接：图片 Base64 + ** + 二次 Base64 密文
+        const finalOutput = imageBase64 + "**" + secondaryBase64;
 
-            // 3. 触发下载
-            const blob = new Blob([finalOutput], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'config_image.txt'; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showToast('图片配置字符串已生成并下载！');
-        };
-        reader.readAsDataURL(file); // 读取为 Base64 格式
-    });
-
-    // --- 提取图片密文（解密）事件 ---
-
-    // 按钮点击触发文件选择
-    if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
-         imageFileInputDecode.click();
-    });
-
-    // 文件选择后处理解密
-    if(imageFileInputDecode) imageFileInputDecode.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+        const blob = new Blob([finalOutput], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'config_image.txt'; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const fullString = e.target.result;
-            const extractedCipher = extractCipherText(fullString);
-            
-            if (extractedCipher) {
-                mainInput.value = extractedCipher;
-                showToast('密文已提取到主输入框！');
-            } else {
-                showToast('提取失败，请检查文件格式。');
+        showToast('图片配置字符串已生成并下载！');
+    };
+    reader.readAsDataURL(file);
+});
+
+// --- 提取图片密文（解密）事件 ---
+
+// 按钮点击触发文件选择
+if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
+     imageFileInputDecode.click();
+});
+
+// 文件选择后处理解密 (已添加 Base64 解码)
+if(imageFileInputDecode) imageFileInputDecode.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const fullString = e.target.result;
+        const extractedBase64Cipher = extractCipherText(fullString); // 提取出二次 Base64 密文
+        
+        if (extractedBase64Cipher) {
+            try {
+                // 关键修正：对提取出的 Base64 密文进行解码，还原成 VOD 密文（Hex）
+                const vodCipherWords = CryptoJS.enc.Base64.parse(extractedBase64Cipher);
+                const vodCipherText = vodCipherWords.toString(CryptoJS.enc.Utf8);
+                
+                mainInput.value = vodCipherText;
+                showToast('密文已提取到主输入框并还原！');
+            } catch (err) {
+                console.error("Base64 解码失败:", err);
+                showToast('密文提取失败，Base64 格式错误。');
             }
-        };
-        reader.readAsText(file); // 读取为纯文本
-    });
+        } else {
+            showToast('提取失败，请检查文件格式。');
+        }
+    };
+    reader.readAsText(file);
+});
 
     // --- 凤凰系统事件绑定 ---
     if(btnEncryptAct) btnEncryptAct.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); showToast('激活码加密完成！'); });
