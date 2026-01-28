@@ -4,46 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>凤凰工具箱 (By 婉儿 & 哥哥)</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #333; }
+        fieldset { border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 20px; }
+        legend { font-weight: bold; color: #555; }
+        textarea, input { width: 98%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; background-color: #409eff; color: white; }
+        button:hover { opacity: 0.8; }
+        .button-group { display: flex; flex-wrap: wrap; justify-content: center; }
+        #vod-iv-input { background-color: #f5f5f5; }
+    </style>
 </head>
 <body>
+
     <div class="container">
-        <h2>🔥 凤凰工具箱 🔥</h2>
-        <textarea id="main-input" placeholder="在此输入明文或密文..."></textarea>
+        <h1>凤凰工具箱</h1>
+        <h2>(By 婉儿 & 哥哥)</h2>
+
+        <textarea id="main-input" rows="10" placeholder="在这里输入明文或密文..."></textarea>
         
-        <div class="btn-grid" id="clipboard-group">
+        <div class="button-group">
             <button id="btn-paste">粘贴</button>
-            <button id="btn-copy" class="btn-secondary">复制</button>
-            <button id="btn-clear" class="btn-danger">清空</button>
+            <button id="btn-copy">复制</button>
+            <button id="btn-clear">清空</button>
         </div>
 
-        <h3>线路仓工具</h3>
-        <div class="btn-grid">
-            <button id="btn-encrypt-vod">双重加密 (VOD)</button>
-            <button id="btn-decrypt-vod">双重解密 (VOD)</button>
-            <button id="btn-create-image">生成图片</button>
-            <button id="btn-parse-image" disabled>解析图片 (待开发)</button>
-        </div>
+        <fieldset>
+            <legend>VOD线路仓工具 (已修复)</legend>
+            <input id="vod-key-input" placeholder="请输入VOD的Key (例如: 123456)" value="123456">
+            <input id="vod-iv-input" placeholder="IV (自动生成)" disabled>
+            <div class="button-group">
+                <button id="btn-encrypt-vod">双重加密(VOD)</button>
+                <button id="btn-decrypt-vod">双重解密(VOD)</button>
+            </div>
+        </fieldset>
 
-        <h3>凤凰系统工具</h3>
-        <div class="btn-grid">
-            <button id="btn-encrypt-act">加密激活码</button>
-            <button id="btn-decrypt-act">解密激活码</button>
-            <button id="btn-encrypt-rule">加密规则</button>
-            <button id="btn-decrypt-rule">解密规则</button>
-        </div>
-        
-        <h3>通用工具</h3>
-        <div class="btn-grid">
-            <button id="btn-md5">MD5计算</button>
-        </div>
+        <fieldset>
+            <legend>凤凰系统工具 (可正常使用)</legend>
+            <div class="button-group">
+                <button id="btn-encrypt-act">加密激活码</button>
+                <button id="btn-decrypt-act">解密激活码</button>
+                <button id="btn-encrypt-rule">加密规则</button>
+                <button id="btn-decrypt-rule">解密规则</button>
+            </div>
+        </fieldset>
 
-        <div class="footer">
-            Designed & Developed by 下一站幸福 & 婉儿 ❤️
-        </div>
+        <fieldset>
+            <legend>通用工具</legend>
+            <div class="button-group">
+                <button id="btn-md5">MD5计算</button>
+            </div>
+        </fieldset>
+
     </div>
 
-    <script src="crypto.js"></script>
-    <script src="main.js"></script>
+    <!-- 关键：使用绝对可靠的官方CDN版本的CryptoJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- 引用我们自己的、最终版的JS代码 -->
+    <script src="./app.js"></script>
+
 </body>
 </html>
