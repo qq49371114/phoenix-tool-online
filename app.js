@@ -22,76 +22,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 辅助函数 ---
     function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
 
-    // ====================  ↓↓↓ VOD线路仓的核心逻辑 (最终修复版) ↓↓↓ ====================
+    // ====================  ↓↓↓ VOD线路仓的核心逻辑 (100%复刻自“多多”) ↓↓↓ ====================
+    /**
+     * 预处理Key和IV的函数
+     * 遵循“不够补0，并转为WordArray”的原则
+     */
     function processKeyToWords(keyString) {
         return CryptoJS.enc.Utf8.parse(keyString.toString().padEnd(16, '0'));
     }
 
     /**
-     * 【保持不变】我们正确的、已被验证的VOD加密函数
+     * 【VOD专用】加密函数 (完全复刻自“多多”)
      */
     function encryptVod(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
+        // 注意：这里直接传入明文字符串，CryptoJS内部会处理
         const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
-        const encryptedHex = encrypted.ciphertext.toString(CryptoJS.enc.Hex);
-        
-        const keyHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(keyString));
-        const ivHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(ivString));
-
-        return "2423" + keyHex + "2324" + encryptedHex + ivHex;
+        // 返回纯粹的、Hex格式的密文主体
+        return encrypted.ciphertext.toString(CryptoJS.enc.Hex);
     }
 
     /**
-     * 【已重铸】VOD解密函数
-     * 严格遵循我们自己加密函数的拼接逻辑进行逆向解析
+     * 【VOD专用】解密函数 (完全复刻自“多多”)
      */
-    function decryptVod(ciphertext) {
+    function decryptVod(ciphertext, keyString, ivString) {
         try {
-            // 1. 【识别车架】
-            if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) {
-                showToast("错误：密文格式不正确！");
-                return null;
-            }
-            const separatorIndex = ciphertext.indexOf("2324");
-            
-            // 2. 【提取原始Key】
-            const keyHex = ciphertext.substring(4, separatorIndex);
-            const keyString = CryptoJS.enc.Hex.parse(keyHex).toString(CryptoJS.enc.Utf8);
-            
-            // 3. 【提取原始IV和密文主体】
-            const bodyAndIvHex = ciphertext.substring(separatorIndex + 4);
-            
-            // ▼▼▼ 【关键约定】IV的Hex长度，等于Key的Hex长度！▼▼▼
-            const ivHexLength = keyHex.length;
-            
-            if (bodyAndIvHex.length < ivHexLength) {
-                showToast("错误：密文已损坏！");
-                return null;
-            }
-
-            const ivHex = bodyAndIvHex.substring(bodyAndIvHex.length - ivHexLength);
-            const ivString = CryptoJS.enc.Hex.parse(ivHex).toString(CryptoJS.enc.Utf8);
-
-            const encryptedHex = bodyAndIvHex.substring(0, bodyAndIvHex.length - ivHexLength);
-
-            // 4. 【补0开刃】
             const key = processKeyToWords(keyString);
             const iv = processKeyToWords(ivString);
-
-            // 5. 【正确地开锁】
-            const ciphertextWords = CryptoJS.enc.Hex.parse(encryptedHex);
+            const ciphertextWords = CryptoJS.enc.Hex.parse(ciphertext);
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-            
             if (!decryptedText) return null;
             return decryptedText;
         } catch (e) {
-            console.error("解密时发生致命错误:", e);
             return null;
         }
     }
-    // ====================  ↑↑↑ VOD线路仓的核心逻辑 (最终修复版) ↑↑↑ ====================
+    // ====================  ↑↑↑ VOD线路仓的核心逻辑 (100%复刻自“多多”) ↑↑↑ ====================
 
     // 【凤凰系统】的加解密核心 (保持能用的原样)
     function encryptAes(data, key, iv) {
@@ -127,7 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
         mainInput.value = encryptVod(mainInput.value, key, iv); 
     });
     btnDecryptVod.addEventListener('click', () => { 
-        const r = decryptVod(mainInput.value); 
+        const key = vodKeyInput.value;
+        const iv = vodIvInput.value;
+        if (!key || !iv) {
+            showToast('请输入VOD的Key和IV！');
+            return;
+        }
+        const r = decryptVod(mainInput.value, key, iv); 
         if(r) mainInput.value = r; else showToast('解密失败！');
     });
 
