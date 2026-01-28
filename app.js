@@ -1,17 +1,5 @@
+// app.js (By 婉儿 - 最终修复版)
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 元素获取 ---
-    const mainInput = document.getElementById('main-input');
-    const vodKeyInput = document.getElementById('vod-key-input');
-    const vodIvInput = document.getElementById('vod-iv-input');
-    const btnPaste = document.getElementById('btn-paste');
-    const btnCopy = document.getElementById('btn-copy');
-    const btnClear = document.getElementById('btn-clear');
-    const btnEncryptVod = document.getElementById('btn-encrypt-vod');
-    const btnDecryptVod = document.getElementById('btn-decrypt-vod');
-    const btnEncryptAct = document.getElementById('btn-encrypt-act');
-    const btnDecryptAct = document.getElementById('btn-decrypt-act');
-    const btnEncryptRule = document.getElementById('btn-encrypt-rule');
-    const btnDecryptRule = document.getElementById('btn-decrypt-rule');
 
     // --- 常量定义 (凤凰系统专用) ---
     const PHOENIX_API_KEY = "PHOENIX-API-KEY!";
@@ -19,19 +7,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const PHOENIX_RULE_KEY = "PHOENIX-RULE-KEY";
     const PHOENIX_RULE_IV = "PHOENIX-RULE-IV!";
 
-    // --- 辅助函数 ---
-    function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
+    // --- 元素获取 ---
+    const mainInput = document.getElementById('main-input');
+    const vodKeyInput = document.getElementById('vod-key-input');
+    const vodIvInput = document.getElementById('vod-iv-input');
 
-    // ====================  ↓↓↓ VOD线路仓的核心逻辑 (婉儿最终修复版) ↓↓↓ ====================
+    // VOD
+    const btnEncryptVod = document.getElementById('btn-encrypt-vod');
+    const btnDecryptVod = document.getElementById('btn-decrypt-vod');
+
+    // 凤凰
+    const btnEncryptAct = document.getElementById('btn-encrypt-act');
+    const btnDecryptAct = document.getElementById('btn-decrypt-act');
+    const btnEncryptRule = document.getElementById('btn-encrypt-rule');
+    const btnDecryptRule = document.getElementById('btn-decrypt-rule');
     
-    // 【保持不变】的辅助函数
+    // 图片配置
+    const btnImageEncode = document.getElementById('btn-image-encode');
+    const imageFileInputEncode = document.getElementById('image-file-input-encode'); 
+    const btnImageDecode = document.getElementById('btn-image-decode');
+
+    // 通用
+    const btnPaste = document.getElementById('btn-paste');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnClear = document.getElementById('btn-clear');
+
+    // --- 核心工具函数 ---
+    
     function processKeyToWords(keyString) {
         return CryptoJS.enc.Utf8.parse(keyString.toString().padEnd(16, '0'));
     }
 
-    /**
-     * 【保持不变】为了兼容壳子，此加密函数不做任何修改
-     */
+    function showToast(message) { 
+        const toast = document.createElement('div'); 
+        toast.textContent = message; 
+        toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; 
+        document.body.appendChild(toast); 
+        setTimeout(() => { 
+            document.body.removeChild(toast); 
+        }, 2000); 
+    }
+
+    // --- VOD 加密解密 (修复后的版本) ---
+
     function encryptVod(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
@@ -44,60 +62,47 @@ document.addEventListener('DOMContentLoaded', () => {
         return "2423" + keyHex + "2324" + encryptedHex + ivHex;
     }
 
-    /**
-     * 【婉儿重构版】在不改变加密格式的前提下，通过手动传入IV来修复解密
-     */
     function decryptVod(ciphertext, ivString) {
         try {
-            // 1. 检查基本格式
-            if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) {
-                showToast("错误：密文格式不正确！");
-                return null;
-            }
+            if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) return null;
             const separatorIndex = ciphertext.indexOf("2324");
             
-            // 2. 提取Key的Hex和原文
             const keyHex = ciphertext.substring(4, separatorIndex);
             const keyString = CryptoJS.enc.Hex.parse(keyHex).toString(CryptoJS.enc.Utf8);
             
-            // 3. 【核心修正】根据外部传入的ivString，动态计算出ivHex的真实长度
             const ivHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(ivString));
             const ivHexLength = ivHex.length;
 
-            // 4. 从密文末尾，按真实长度切割出ivHex和密文主体
             const bodyAndIvHex = ciphertext.substring(separatorIndex + 4);
-            if (bodyAndIvHex.length < ivHexLength) {
-                showToast("错误：密文已损坏！");
-                return null;
-            }
+            if (bodyAndIvHex.length < ivHexLength) return null;
             const encryptedHex = bodyAndIvHex.substring(0, bodyAndIvHex.length - ivHexLength);
 
-            // 5. 使用和加密时完全一致的逻辑，来生成用于解密的Key和IV
             const key = processKeyToWords(keyString);
             const iv = processKeyToWords(ivString);
 
-            // 6. 执行解密
             const ciphertextWords = CryptoJS.enc.Hex.parse(encryptedHex);
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
             
-            if (!decryptedText) {
-                showToast("解密失败，请检查Key/IV或密文是否正确。");
-                return null;
-            }
-            return decryptedText;
+            return decryptedText || null;
 
         } catch (e) {
-            console.error("解密时发生致命错误:", e);
-            showToast("解密时发生致命错误，详见控制台。");
+            console.error("VOD解密时发生致命错误:", e);
             return null;
         }
     }
     
-    // ====================  ↑↑↑ VOD线路仓的核心逻辑 (婉儿最终修复版) ↑↑↑ ====================
+    // --- “图片拼接” 核心逻辑 (模拟多多的行为) ---
 
-
-    // 【凤凰系统】的加解密核心 (保持能用的原样)
+    function extractCipherText(imageTextString) {
+        const separator = '**';
+        const parts = imageTextString.split(separator);
+        
+        if (parts.length < 2) return null;
+        return parts[1];
+    }
+    
+    // 【凤凰系统】的加解密核心 
     function encryptAes(data, key, iv) {
         const keyHex = CryptoJS.enc.Utf8.parse(key);
         const ivHex = CryptoJS.enc.Utf8.parse(iv);
@@ -116,37 +121,123 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 事件监听绑定 ---
-    btnPaste.addEventListener('click', () => navigator.clipboard.readText().then(text => { mainInput.value = text; showToast('已粘贴'); }));
-    btnCopy.addEventListener('click', () => { if(mainInput.value) navigator.clipboard.writeText(mainInput.value).then(() => showToast('已复制')); });
-    btnClear.addEventListener('click', () => mainInput.value = "");
-    
-    // 【保持不变】加密按钮事件
-    btnEncryptVod.addEventListener('click', () => { 
-        const key = vodKeyInput.value;
-        const iv = vodIvInput.value;
-        if (!key || !iv) {
-            showToast('请输入VOD的Key和IV！');
-            return;
-        }
-        mainInput.value = encryptVod(mainInput.value, key, iv); 
+    // --- 事件绑定 ---
+
+    // VOD 加密事件
+    if(btnEncryptVod) btnEncryptVod.addEventListener('click', () => {
+         const keyVal = vodKeyInput.value;
+         const ivVal = vodIvInput.value;
+         if (!keyVal || !ivVal) {
+             showToast('请输入VOD的Key和IV！');
+             return;
+         }
+         mainInput.value = encryptVod(mainInput.value, keyVal, ivVal);
+         showToast('VOD加密完成！');
     });
 
-    // 【婉儿重构版】解密按钮事件
-    btnDecryptVod.addEventListener('click', () => { 
-        // 【核心修正】解密时，必须从输入框获取原始IV
-        const iv = vodIvInput.value;
-        if (!iv) {
-            showToast('解密需要提供原始的IV！');
-            return;
-        }
-        const r = decryptVod(mainInput.value, iv); 
-        if(r) mainInput.value = r;
+    // VOD 解密事件
+    if(btnDecryptVod) btnDecryptVod.addEventListener('click', () => {
+         const ivVal = vodIvInput.value;
+         if (!ivVal) {
+             showToast('解密需要提供原始的IV！');
+             return;
+         }
+         const r = decryptVod(mainInput.value, ivVal); 
+         if(r) {
+             mainInput.value = r;
+             showToast('VOD解密成功！');
+         } else {
+             showToast('VOD解密失败！');
+         }
     });
 
-    // 凤凰系统按钮保持原样
-    btnEncryptAct.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); });
-    btnDecryptAct.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
-    btnEncryptRule.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); });
-    btnDecryptRule.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
+    // “配置转图片”隐写事件 - 按钮点击触发文件选择
+    if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
+        imageFileInputEncode.click(); // 触发隐藏的文件输入框
+    });
+
+    // 文件选择后处理隐写
+    if(imageFileInputEncode) imageFileInputEncode.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const textToHide = mainInput.value;
+        if (!textToHide) {
+            showToast('请先输入要隐藏的密文！');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // 1. 提取图片的 Base64 内容
+            const imageBase64 = e.target.result.split(',')[1];
+            
+            // 2. 拼接密文
+            const finalOutput = imageBase64 + "**" + textToHide;
+
+            // 3. 触发下载
+            const blob = new Blob([finalOutput], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'config_image.txt'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('图片配置字符串已生成并下载！');
+        };
+        reader.readAsDataURL(file); // 读取为 Base64 格式
+    });
+
+    // 提取图片密文（解密）事件
+    if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
+         // 模拟文件选择（用于上传那个拼接的文本文件）
+         const fileInputDecode = document.createElement('input');
+         fileInputDecode.type = 'file';
+         fileInputDecode.onchange = (event) => {
+             const file = event.target.files[0];
+             if (!file) return;
+             
+             const reader = new FileReader();
+             reader.onload = function(e) {
+                 const fullString = e.target.result;
+                 
+                 // 提取密文
+                 const extractedCipher = extractCipherText(fullString);
+                 
+                 if (extractedCipher) {
+                     mainInput.value = extractedCipher;
+                     showToast('密文已提取到主输入框！');
+                 } else {
+                     showToast('提取失败，请检查文件格式。');
+                 }
+             };
+             reader.readAsText(file); // 读取为纯文本
+         };
+         fileInputDecode.click();
+    });
+
+    // --- 凤凰系统事件绑定 ---
+    if(btnEncryptAct) btnEncryptAct.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); showToast('激活码加密完成！'); });
+    if(btnDecryptAct) btnDecryptAct.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_API_KEY, PHOENIX_API_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
+    if(btnEncryptRule) btnEncryptRule.addEventListener('click', () => { mainInput.value = encryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); showToast('规则加密完成！'); });
+    if(btnDecryptRule) btnDecryptRule.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
+
+
+    // --- 通用操作绑定 (已修复) ---
+    if(btnPaste) btnPaste.addEventListener('click', () => { 
+        navigator.clipboard.readText()
+            .then(text => { mainInput.value = text; showToast('已粘贴'); })
+            .catch(err => { showToast('粘贴失败，请手动操作。'); });
+    });
+    if(btnCopy) btnCopy.addEventListener('click', () => { 
+        if(mainInput.value) {
+            navigator.clipboard.writeText(mainInput.value)
+                .then(() => showToast('已复制'))
+                .catch(err => { showToast('复制失败，请手动操作。'); });
+        }
+    });
+    if(btnClear) btnClear.addEventListener('click', () => { mainInput.value = ""; showToast('已清空'); });
 });
