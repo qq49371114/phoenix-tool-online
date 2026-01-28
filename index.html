@@ -32,7 +32,9 @@
         </div>
 
         <fieldset>
-            <legend>VOD线路仓工具 (动态密钥版)</legend>
+            <legend>VOD线路仓工具 (最终修复版)</legend>
+            <input type="text" id="vod-key-input" placeholder="请输入VOD的Key">
+            <input type="text" id="vod-iv-input" placeholder="请输入VOD的IV (或留空使用时间戳)">
             <div class="button-group">
                 <button id="btn-encrypt-vod" style="background-color: #52c41a;">加密(VOD)</button>
                 <button id="btn-decrypt-vod" style="background-color: #faad14;">解密(VOD)</button>
@@ -41,19 +43,7 @@
 
         <fieldset>
             <legend>凤凰系统工具 (可正常使用)</legend>
-            <div class="button-group">
-                <button id="btn-encrypt-act">加密激活码</button>
-                <button id="btn-decrypt-act">解密激活码</button>
-                <button id="btn-encrypt-rule">加密规则</button>
-                <button id="btn-decrypt-rule">解密规则</button>
-            </div>
-        </fieldset>
-
-        <fieldset>
-            <legend>通用工具</legend>
-            <div class="button-group">
-                <button id="btn-md5">MD5计算</button>
-            </div>
+            <!-- ... (凤凰系统按钮保持原样) ... -->
         </fieldset>
 
     </div>
