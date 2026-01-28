@@ -40,6 +40,19 @@
                 <button id="btn-decrypt-vod" style="background-color: #faad14;">解密(VOD)</button>
             </div>
         </fieldset>
+        
+        <!-- 婉儿新增的图片配置工具 -->
+        <fieldset>
+            <legend>图片配置工具 (拼接密文)</legend>
+            <div class="button-group">
+                <label>
+                    <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
+                    <!-- 隐藏的文件输入框，用于选择图片 -->
+                    <input type="file" id="image-file-input-encode" accept="image/*" style="display: none;">
+                </label>
+                <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
+            </div>
+        </fieldset>
 
         <fieldset>
             <legend>凤凰系统工具 (可正常使用)</legend>
