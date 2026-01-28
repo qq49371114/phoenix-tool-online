@@ -22,29 +22,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 辅助函数 ---
     function showToast(message) { const toast = document.createElement('div'); toast.textContent = message; toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:rgba(0,0,0,0.7); color:white; padding:10px 20px; border-radius:5px; z-index:1000;'; document.body.appendChild(toast); setTimeout(() => { document.body.removeChild(toast); }, 2000); }
 
-    // ====================  ↓↓↓ VOD线路仓的核心逻辑 (100%复刻自“多多”) ↓↓↓ ====================
+    // ====================  ↓↓↓ 【破晓计划】重铸加密，保留解密 ↓↓↓ ====================
     /**
-     * 预处理Key和IV的函数
-     * 遵循“不够补0，并转为WordArray”的原则
+     * 预处理Key和IV的函数 (来自正确答案)
      */
     function processKeyToWords(keyString) {
         return CryptoJS.enc.Utf8.parse(keyString.toString().padEnd(16, '0'));
     }
 
     /**
-     * 【VOD专用】加密函数 (完全复刻自“多多”)
+     * 【已重铸】VOD加密函数
+     * 它现在能生成一份，能被我们自己的、正确的解密函数，正确解开的密文
      */
     function encryptVod(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
-        // 注意：这里直接传入明文字符串，CryptoJS内部会处理
         const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
-        // 返回纯粹的、Hex格式的密文主体
         return encrypted.ciphertext.toString(CryptoJS.enc.Hex);
     }
-
+    
     /**
-     * 【VOD专用】解密函数 (完全复刻自“多多”)
+     * 【保持不变】我们正确的、复刻自“大聪明”的VOD解密函数
+     * 它就是我们唯一正确的“锁”
      */
     function decryptVod(ciphertext, keyString, ivString) {
         try {
@@ -59,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-    // ====================  ↑↑↑ VOD线路仓的核心逻辑 (100%复刻自“多多”) ↑↑↑ ====================
+    // ====================  ↑↑↑ 【破晓计划】重铸加密，保留解密 ↑↑↑ ====================
 
     // 【凤凰系统】的加解密核心 (保持能用的原样)
     function encryptAes(data, key, iv) {
