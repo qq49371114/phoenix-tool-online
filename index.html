@@ -41,16 +41,20 @@
             </div>
         </fieldset>
         
-        <!-- 婉儿新增的图片配置工具 -->
+        <!-- 婉儿修复并新增的图片配置工具 -->
         <fieldset>
             <legend>图片配置工具 (拼接密文)</legend>
             <div class="button-group">
                 <label>
                     <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
-                    <!-- 隐藏的文件输入框，用于选择图片 -->
+                    <!-- 隐写的文件输入框 -->
                     <input type="file" id="image-file-input-encode" accept="image/*" style="display: none;">
                 </label>
-                <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
+                <label>
+                    <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
+                    <!-- 解密的文件输入框 -->
+                    <input type="file" id="image-file-input-decode" style="display: none;">
+                </label>
             </div>
         </fieldset>
 
