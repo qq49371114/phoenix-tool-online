@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnImageEncode = document.getElementById('btn-image-encode');
     const imageFileInputEncode = document.getElementById('image-file-input-encode'); 
     const btnImageDecode = document.getElementById('btn-image-decode');
+    const imageFileInputDecode = document.getElementById('image-file-input-decode'); // 新增获取
 
     // 通用
     const btnPaste = document.getElementById('btn-paste');
@@ -151,7 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     });
 
-    // “配置转图片”隐写事件 - 按钮点击触发文件选择
+    // --- “配置转图片”隐写事件 ---
+    
+    // 按钮点击触发文件选择
     if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
         imageFileInputEncode.click(); // 触发隐藏的文件输入框
     });
@@ -191,32 +194,31 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file); // 读取为 Base64 格式
     });
 
-    // 提取图片密文（解密）事件
+    // --- 提取图片密文（解密）事件 ---
+
+    // 按钮点击触发文件选择
     if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
-         // 模拟文件选择（用于上传那个拼接的文本文件）
-         const fileInputDecode = document.createElement('input');
-         fileInputDecode.type = 'file';
-         fileInputDecode.onchange = (event) => {
-             const file = event.target.files[0];
-             if (!file) return;
-             
-             const reader = new FileReader();
-             reader.onload = function(e) {
-                 const fullString = e.target.result;
-                 
-                 // 提取密文
-                 const extractedCipher = extractCipherText(fullString);
-                 
-                 if (extractedCipher) {
-                     mainInput.value = extractedCipher;
-                     showToast('密文已提取到主输入框！');
-                 } else {
-                     showToast('提取失败，请检查文件格式。');
-                 }
-             };
-             reader.readAsText(file); // 读取为纯文本
-         };
-         fileInputDecode.click();
+         imageFileInputDecode.click();
+    });
+
+    // 文件选择后处理解密
+    if(imageFileInputDecode) imageFileInputDecode.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fullString = e.target.result;
+            const extractedCipher = extractCipherText(fullString);
+            
+            if (extractedCipher) {
+                mainInput.value = extractedCipher;
+                showToast('密文已提取到主输入框！');
+            } else {
+                showToast('提取失败，请检查文件格式。');
+            }
+        };
+        reader.readAsText(file); // 读取为纯文本
     });
 
     // --- 凤凰系统事件绑定 ---
@@ -226,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(btnDecryptRule) btnDecryptRule.addEventListener('click', () => { const r = decryptAes(mainInput.value, PHOENIX_RULE_KEY, PHOENIX_RULE_IV); if(r) mainInput.value = r; else showToast('解密失败！'); });
 
 
-    // --- 通用操作绑定 (已修复) ---
+    // --- 通用操作绑定 (最终修复复制粘贴逻辑) ---
     if(btnPaste) btnPaste.addEventListener('click', () => { 
         navigator.clipboard.readText()
             .then(text => { mainInput.value = text; showToast('已粘贴'); })
