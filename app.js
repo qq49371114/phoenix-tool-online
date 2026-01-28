@@ -47,48 +47,48 @@ document.addEventListener('DOMContentLoaded', () => {
      * 严格遵循我们自己加密函数的拼接逻辑进行逆向解析
      */
     function decryptVod(ciphertext) {
-        try {
-            // 1. 【识别车架】检查并分离出各个部分
-            if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) {
-                showToast("错误：密文格式不正确，缺少头部！");
-                return null;
-            }
-            const separatorIndex = ciphertext.indexOf("2324");
-            
-            // 2. 【提取钥匙】从头部提取出原始的Key字符串
-            const keyHex = ciphertext.substring(4, separatorIndex);
-            const keyString = CryptoJS.enc.Hex.parse(keyHex).toString(CryptoJS.enc.Utf8);
-            
-            // 3. 【提取线索】从尾部提取出原始的IV字符串
-            const bodyAndIvHex = ciphertext.substring(separatorIndex + 4);
-            
-            // ▼▼▼ 【关键约定】IV的Hex长度，等于Key的Hex长度！▼▼▼
-            const ivHexLength = keyHex.length;
-            
-            if (bodyAndIvHex.length < ivHexLength) {
-                showToast("错误：密文已损坏，长度不足！");
-                return null;
-            }
-
-            const ivHex = bodyAndIvHex.substring(bodyAndIvHex.length - ivHexLength);
-            const ivString = CryptoJS.enc.Hex.parse(ivHex).toString(CryptoJS.enc.Utf8);
-
-            const encryptedHex = bodyAndIvHex.substring(0, bodyAndIvHex.length - ivHexLength);
-
-            // 4. 【正确地开锁】用提取出的Key和IV，去解密主体
-            const key = processKeyToWords(keyString);
-            const iv = processKeyToWords(ivString);
-            const ciphertextWords = CryptoJS.enc.Hex.parse(encryptedHex);
-            const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
-            const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-            
-            if (!decryptedText) return null;
-            return decryptedText;
-        } catch (e) {
-            console.error("解密时发生致命错误:", e);
+    try {
+        // 1. 【识别车架】
+        if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) {
+            showToast("错误：密文格式不正确！");
             return null;
         }
+        const separatorIndex = ciphertext.indexOf("2324");
+        
+        // 2. 【提取原始Key/IV】
+        const keyHex = ciphertext.substring(4, separatorIndex);
+        const keyString = CryptoJS.enc.Hex.parse(keyHex).toString(CryptoJS.enc.Utf8);
+        
+        const bodyAndIvHex = ciphertext.substring(separatorIndex + 4);
+        const ivHexLength = keyHex.length;
+        if (bodyAndIvHex.length < ivHexLength) {
+            showToast("错误：密文已损坏！");
+            return null;
+        }
+        const ivHex = bodyAndIvHex.substring(bodyAndIvHex.length - ivHexLength);
+        const ivString = CryptoJS.enc.Hex.parse(ivHex).toString(CryptoJS.enc.Utf8);
+
+        const encryptedHex = bodyAndIvHex.substring(0, bodyAndIvHex.length - ivHexLength);
+
+        // ▼▼▼ 3. 【关键修正：补0开刃！】▼▼▼
+        // 用和加密时完全一样的processKeyToWords函数，来处理提取出的Key和IV
+        const key = processKeyToWords(keyString);
+        const iv = processKeyToWords(ivString);
+        // ▲▲▲ 3. 【关键修正：补0开刃！】▲▲▲
+
+        // 4. 【正确地开锁】
+        const ciphertextWords = CryptoJS.enc.Hex.parse(encryptedHex);
+        const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
+        const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedText) return null;
+        return decryptedText;
+    } catch (e) {
+        console.error("解密时发生致命错误:", e);
+        return null;
     }
+}
+// ====================  ↑↑↑ 【补完计划】最终的VOD解密核心 ↑↑↑ ====================
     // ====================  ↑↑↑ VOD线路仓的核心逻辑 (最终修复版) ↑↑↑ ====================
 
     // 【凤凰系统】的加解密核心 (保持能用的原样)
