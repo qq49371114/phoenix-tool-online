@@ -143,8 +143,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- “配置转图片”隐写事件 (数据流拼接模式) ---
     
     // 按钮点击触发文件选择
-    if(btnImageEncode && imageFileInputEncode) btnImageEncode.addEventListener('click', () => {
-        imageFileInputEncode.click(); 
+    if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
+        // 【核心修复】确保点击按钮时触发隐藏的文件输入框
+        if(imageFileInputEncode) {
+             imageFileInputEncode.click(); 
+        } else {
+             showToast('错误：找不到文件选择元素！');
+        }
     });
 
     // 文件选择后处理隐写
@@ -189,8 +194,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 提取图片密文（解密）事件 (数据流拼接模式) ---
 
     // 按钮点击触发文件选择
-    if(btnImageDecode && imageFileInputDecode) btnImageDecode.addEventListener('click', () => {
-         imageFileInputDecode.click();
+    if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
+         if(imageFileInputDecode) {
+             imageFileInputDecode.click();
+         } else {
+             showToast('错误：找不到文件选择元素！');
+         }
     });
 
     // 文件选择后处理解密
