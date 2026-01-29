@@ -1,4 +1,4 @@
-// app.js (By 婉儿 - 最终修复 LSB 下载格式)
+// app.js (By 婉儿 - 最终修复按钮点击)
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 常量定义 (凤凰系统专用) ---
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000); 
     }
 
-    // LSB 辅助函数（虽然我们回到 Base64 拼接，但函数保留，仅为兼容）
+    // LSB 辅助函数（已移除隐写和解密本体，仅保留辅助）
     function extractCipherText(imageTextString) {
         const separator = '**';
         const parts = imageTextString.split(separator);
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- “配置转图片”隐写事件 (数据流拼接模式) ---
     
     // 按钮点击触发文件选择
-    if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
+    if(btnImageEncode && imageFileInputEncode) btnImageEncode.addEventListener('click', () => {
         imageFileInputEncode.click(); 
     });
 
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 1. 对 VOD 密文进行二次 Base64 编码 
+        // 1. 对 VOD 密文进行二次 Base64 编码 (三层编码的第二层)
         const vodCipherWords = CryptoJS.enc.Utf8.parse(textToHide);
         const secondaryBase64 = CryptoJS.enc.Base64.stringify(vodCipherWords);
 
@@ -171,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalOutput = imageBase64 + "**" + secondaryBase64;
 
             // 4. 触发下载
-            // 【核心修复】将内容视为纯文本，但强制指定下载为 BMP 文件名
             const blob = new Blob([finalOutput], { type: 'text/plain' }); 
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -190,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 提取图片密文（解密）事件 (数据流拼接模式) ---
 
     // 按钮点击触发文件选择
-    if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
+    if(btnImageDecode && imageFileInputDecode) btnImageDecode.addEventListener('click', () => {
          imageFileInputDecode.click();
     });
 
