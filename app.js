@@ -1,4 +1,4 @@
-// app.js (By 婉儿 - 最终完美版 - 无省略)
+// app.js (By 婉儿 - 最终修复 LSB 下载格式)
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 常量定义 (凤凰系统专用) ---
@@ -95,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function decodeData(bytes) {
         const decoder = new TextDecoder();
-        // 最终清理 Base64 解码可能产生的空字符和不可见字符
         let text = decoder.decode(bytes);
         return text.replace(/[\u0000-\u001F]+/g, '').trim();
     }
@@ -166,8 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let dataIndex = 0;
         
-        for (let i = 0; i < data.length; i += 4) { // 遍历像素
-            for (let j = 0; j < 3; j++) { // R, G, B 通道
+        for (let i = 0; i < data.length; i += 4) { 
+            for (let j = 0; j < 3; j++) { 
                 const componentIndex = i + j; 
                 
                 if (dataIndex < fullData.length * 8) {
@@ -175,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const bitOffset = 7 - (dataIndex % 8);
                     const bit = (fullData[byteIndex] >> bitOffset) & 1;
                     
-                    data[componentIndex] = (data[componentIndex] & 0xFE) | bit; // 核心 LSB 隐写
+                    data[componentIndex] = (data[componentIndex] & 0xFE) | bit; 
                     
                     dataIndex++;
                 } else {
@@ -205,11 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataLength = bytesToInt(lengthBytes); 
         
         if (dataLength === 0 || dataLength > 1000000) { 
-            return null; // 没有数据或数据损坏
+            return null; 
         }
 
         const hiddenDataBytes = extractBytes(data, 4, dataLength);
-        return decodeData(hiddenDataBytes); // 返回二次 Base64 密文
+        return decodeData(hiddenDataBytes); 
     }
 
     // --- 凤凰系统加解密核心 ---
@@ -218,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyHex = CryptoJS.enc.Utf8.parse(key);
         const ivHex = CryptoJS.enc.Utf8.parse(iv);
         const dataWords = CryptoJS.enc.Utf8.parse(data);
-        const encrypted = CryptoJS.AES.encrypt(dataWords, keyHex, { iv: ivHex });
+        const encrypted = CryptoJS.AES.encrypt(dataWords, keyHex, { iv: iv });
         return encrypted.toString();
     }
     function decryptAes(ciphertext, key, iv) {
@@ -231,7 +230,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-
 
     // --- 事件绑定 ---
 
@@ -293,16 +291,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 2. LSB 隐写
                     const stegoCanvas = toImg(img, secondaryBase64);
                     
-                    // 3. 触发下载 (输出一个 PNG 图片文件)
-                    const dataURL = stegoCanvas.toDataURL('image/png');
-                    const a = document.createElement('a');
-                    a.href = dataURL;
-                    a.download = 'waner_config_image.png'; 
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    
-                    showToast('LSB 隐写完成，图片已下载！');
+                    // 3. 【下载修复】用 toBlob 强制指定文件类型
+                    stegoCanvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'waner_config_image.png'; 
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        showToast('LSB 隐写完成，图片已下载！');
+                    }, 'image/png'); 
+
                 } catch (error) {
                     showToast('隐写失败: ' + error.message);
                 }
