@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return decodeData(hiddenDataBytes); 
     }
 
-    // --- 凤凰系统加解密核心 ---
+    // --- 凤凰系统加解密核心 (省略，保持不变) ---
 
     function encryptAes(data, key, iv) {
         const keyHex = CryptoJS.enc.Utf8.parse(key);
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const keyHex = CryptoJS.enc.Utf8.parse(key);
             const ivHex = CryptoJS.enc.Utf8.parse(iv);
-            const decrypted = CryptoJS.AES.decrypt(ciphertext, keyHex, { iv: ivHex });
+            const decrypted = CryptoJS.AES.decrypt(ciphertext, keyHex, { iv: iv Hex });
             return decrypted.toString(CryptoJS.enc.Utf8);
         } catch (e) {
             return null;
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 1. 对 VOD 密文进行二次 Base64 编码 (安全性增强)
+        // 1. 对 VOD 密文进行二次 Base64 编码 (三层编码的第一步)
         const vodCipherWords = CryptoJS.enc.Utf8.parse(textToHide);
         const secondaryBase64 = CryptoJS.enc.Base64.stringify(vodCipherWords);
 
