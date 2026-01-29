@@ -43,18 +43,17 @@
         
         <!-- 婉儿修复并新增的图片配置工具 -->
         <fieldset>
-            <legend>图片配置工具 (LSB隐写)</legend>
+            <legend>图片配置工具 (拼接密文)</legend>
             <div class="button-group">
-                <label>
-                    <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
-                    <!-- 隐写的文件输入框 -->
-                    <input type="file" id="image-file-input-encode" accept="image/*" style="display: none;">
-                </label>
-                <label>
-                    <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
-                    <!-- 解密的文件输入框 -->
-                    <input type="file" id="image-file-input-decode" accept="image/*" style="display: none;">
-                </label>
+                
+                <!-- 隐写按钮和输入框分离 -->
+                <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
+                <input type="file" id="image-file-input-encode" accept="image/*" style="display: none;">
+                
+                <!-- 提取按钮和输入框分离 -->
+                <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
+                <input type="file" id="image-file-input-decode" accept="image/*" style="display: none;">
+                
             </div>
         </fieldset>
 
