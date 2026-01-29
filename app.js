@@ -49,67 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000); 
     }
 
-    // --- LSB 隐写核心辅助函数 ---
-
-    function encodeData(text) {
-        const encoder = new TextEncoder();
-        const dataBytes = encoder.encode(text);
-        const length = dataBytes.length;
-        
-        const lengthBuffer = new ArrayBuffer(4);
-        new DataView(lengthBuffer).setUint32(0, length, false); // Big Endian
-        const lengthBytes = new Uint8Array(lengthBuffer);
-
-        const fullData = new Uint8Array(4 + length);
-        fullData.set(lengthBytes, 0);
-        fullData.set(dataBytes, 4);
-        return fullData;
-    }
-    
-    function extractBytes(data, startByteIndex, count) {
-        const result = new Uint8Array(count);
-        let dataIndex = startByteIndex * 8; 
-        
-        for (let k = 0; k < count; k++) { 
-            let resultByte = 0;
-            for (let bitIndex = 0; bitIndex < 8; bitIndex++) { 
-                const currentBitIndex = dataIndex + bitIndex;
-                const componentOffset = currentBitIndex % 3; 
-                const pixelIndex = Math.floor(currentBitIndex / 3);
-                const componentIndex = pixelIndex * 4 + componentOffset;
-                
-                const bit = data[componentIndex] & 1;
-                resultByte = (resultByte << 1) | bit;
-            }
-            result[k] = resultByte;
-            dataIndex += 8;
-        }
-        return result;
-    }
-
-    function bytesToInt(bytes) {
-        if (bytes.length !== 4) return 0;
-        const view = new DataView(bytes.buffer);
-        return view.getUint32(0, false); 
-    }
-    
-    function decodeData(bytes) {
-        const decoder = new TextDecoder();
-        let text = decoder.decode(bytes);
-        return text.replace(/[\u0000-\u001F]+/g, '').trim();
+    // LSB 辅助函数（虽然我们回到 Base64 拼接，但函数保留，仅为兼容）
+    function extractCipherText(imageTextString) {
+        const separator = '**';
+        const parts = imageTextString.split(separator);
+        if (parts.length < 2) return null;
+        return parts[1];
     }
     
     // --- VOD 加密解密 (修复后的版本) ---
-
     function encryptVod(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
         const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
         const encryptedHex = encrypted.ciphertext.toString(CryptoJS.enc.Hex);
-        
         const keyHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(keyString));
         const ivHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(ivString));
-
         return "2423" + keyHex + "2324" + encryptedHex + ivHex;
     }
 
@@ -117,102 +72,26 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) return null;
             const separatorIndex = ciphertext.indexOf("2324");
-            
             const keyHex = ciphertext.substring(4, separatorIndex);
             const keyString = CryptoJS.enc.Hex.parse(keyHex).toString(CryptoJS.enc.Utf8);
-            
             const ivHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(ivString));
             const ivHexLength = ivHex.length;
-
             const bodyAndIvHex = ciphertext.substring(separatorIndex + 4);
             if (bodyAndIvHex.length < ivHexLength) return null;
             const encryptedHex = bodyAndIvHex.substring(0, bodyAndIvHex.length - ivHexLength);
-
             const key = processKeyToWords(keyString);
             const iv = processKeyToWords(ivString);
-
             const ciphertextWords = CryptoJS.enc.Hex.parse(encryptedHex);
             const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertextWords }, key, { iv: iv });
             const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-            
             return decryptedText || null;
-
         } catch (e) {
             console.error("VOD解密时发生致命错误:", e);
             return null;
         }
     }
-    
-    // --- LSB 隐写和解密函数 ---
-
-    function toImg(img, text) {
-        if (!img || !text) throw new Error("图片和密文不能为空");
-
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, img.width, img.height);
-        const data = imageData.data;
-        const fullData = encodeData(text);
-
-        const maxCapacityBytes = Math.floor((data.length / 4) * 3 / 8); 
-        if (fullData.length > maxCapacityBytes) {
-            throw new Error(`数据过大，最大容量: ${maxCapacityBytes} 字节。`);
-        }
-
-        let dataIndex = 0;
-        
-        for (let i = 0; i < data.length; i += 4) { 
-            for (let j = 0; j < 3; j++) { 
-                const componentIndex = i + j; 
-                
-                if (dataIndex < fullData.length * 8) {
-                    const byteIndex = Math.floor(dataIndex / 8);
-                    const bitOffset = 7 - (dataIndex % 8);
-                    const bit = (fullData[byteIndex] >> bitOffset) & 1;
-                    
-                    data[componentIndex] = (data[componentIndex] & 0xFE) | bit; 
-                    
-                    dataIndex++;
-                } else {
-                    break;
-                }
-            }
-            if (dataIndex >= fullData.length * 8) break;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        return canvas;
-    }
-
-    function fromImg(img) {
-        if (!img) return null;
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        const lengthBytes = extractBytes(data, 0, 4);
-        const dataLength = bytesToInt(lengthBytes); 
-        
-        if (dataLength === 0 || dataLength > 1000000) { 
-            return null; 
-        }
-
-        const hiddenDataBytes = extractBytes(data, 4, dataLength);
-        return decodeData(hiddenDataBytes); 
-    }
 
     // --- 凤凰系统加解密核心 (省略，保持不变) ---
-
     function encryptAes(data, key, iv) {
         const keyHex = CryptoJS.enc.Utf8.parse(key);
         const ivHex = CryptoJS.enc.Utf8.parse(iv);
@@ -261,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     });
 
-    // --- “配置转图片”隐写事件 (LSB 隐写) ---
+    // --- “配置转图片”隐写事件 (数据流拼接模式) ---
     
     // 按钮点击触发文件选择
     if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
@@ -279,42 +158,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 1. 对 VOD 密文进行二次 Base64 编码 (三层编码的第一步)
+        // 1. 对 VOD 密文进行二次 Base64 编码 
         const vodCipherWords = CryptoJS.enc.Utf8.parse(textToHide);
         const secondaryBase64 = CryptoJS.enc.Base64.stringify(vodCipherWords);
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                try {
-                    // 2. LSB 隐写
-                    const stegoCanvas = toImg(img, secondaryBase64);
-                    
-                    // 3. 【下载修复】用 toBlob 强制指定文件类型
-                    stegoCanvas.toBlob(function(blob) {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'waner_config_image.png'; 
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                        
-                        showToast('LSB 隐写完成，图片已下载！');
-                    }, 'image/png'); 
+            // 2. 提取图片的 Base64 内容
+            const imageBase64 = e.target.result.split(',')[1];
+            
+            // 3. 拼接核心数据：图片 Base64 + ** + 二次 Base64 密文
+            const finalOutput = imageBase64 + "**" + secondaryBase64;
 
-                } catch (error) {
-                    showToast('隐写失败: ' + error.message);
-                }
-            };
-            img.src = e.target.result;
+            // 4. 触发下载
+            // 【核心修复】将内容视为纯文本，但强制指定下载为 BMP 文件名
+            const blob = new Blob([finalOutput], { type: 'text/plain' }); 
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'waner_config_image.bmp'; // 强制后缀为 BMP
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('配置字符串已生成并下载为 BMP 文件！');
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file); // 读取为 Base64 格式
     });
 
-    // --- 提取图片密文（解密）事件 (LSB 解密) ---
+    // --- 提取图片密文（解密）事件 (数据流拼接模式) ---
 
     // 按钮点击触发文件选择
     if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
@@ -328,33 +201,33 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const reader = new FileReader();
         reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
+            const fullString = e.target.result;
+            const separator = '**';
+            const parts = fullString.split(separator);
+
+            if (parts.length >= 2) {
+                // 提取二次 Base64 密文 (清理多余前缀)
+                const extractedBase64Cipher = parts[1].replace(/CAOSBjTG/g, '').trim(); 
+
                 try {
-                    // 1. LSB 解密，提取出二次 Base64 密文
-                    const extractedBase64Cipher = fromImg(img);
+                    // 1. Base64 解码，还原成 VOD 密文（Hex）
+                    const vodCipherWords = CryptoJS.enc.Base64.parse(extractedBase64Cipher);
+                    let vodCipherText = vodCipherWords.toString(CryptoJS.enc.Utf8);
                     
-                    if (extractedBase64Cipher) {
-                        // 2. Base64 解码，还原成 VOD 密文（Hex）
-                        const vodCipherWords = CryptoJS.enc.Base64.parse(extractedBase64Cipher);
-                        let vodCipherText = vodCipherWords.toString(CryptoJS.enc.Utf8);
-                        
-                        // 3. 最终清理
-                        vodCipherText = vodCipherText.replace(/[\u0000-\u001F]+/g, '').trim();
-                        
-                        mainInput.value = vodCipherText;
-                        showToast('密文已从图片中完美提取！');
-                    } else {
-                        showToast('提取失败，图片中未发现密文。');
-                    }
+                    // 2. 最终清理
+                    vodCipherText = vodCipherText.replace(/[\u0000-\u001F]+/g, '').trim();
+                    
+                    mainInput.value = vodCipherText;
+                    showToast('密文已从拼接文件中完美提取！');
                 } catch (err) {
-                    console.error("LSB 解密失败:", err);
-                    showToast('图片解密失败，请检查是否是隐写后的 PNG 图片。');
+                    console.error("Base64 解码失败:", err);
+                    showToast('密文提取失败，Base64 格式错误。');
                 }
-            };
-            img.src = e.target.result;
+            } else {
+                showToast('提取失败，未找到分隔符 **。');
+            }
         };
-        reader.readAsDataURL(file);
+        reader.readAsText(file); // 读取为纯文本
     });
 
     // --- 凤凰系统事件绑定 ---
