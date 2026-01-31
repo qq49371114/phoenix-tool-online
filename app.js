@@ -1,4 +1,4 @@
-// app.js (By 婉儿 - 最终精简事件绑定)
+// app.js (By 婉儿 - 内置 1x1 BMP 模板)
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 常量定义 (凤凰系统专用) ---
@@ -11,21 +11,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainInput = document.getElementById('main-input');
     const vodKeyInput = document.getElementById('vod-key-input');
     const vodIvInput = document.getElementById('vod-iv-input');
+
+    // VOD
     const btnEncryptVod = document.getElementById('btn-encrypt-vod');
     const btnDecryptVod = document.getElementById('btn-decrypt-vod');
+
+    // 凤凰
     const btnEncryptAct = document.getElementById('btn-encrypt-act');
     const btnDecryptAct = document.getElementById('btn-decrypt-act');
     const btnEncryptRule = document.getElementById('btn-encrypt-rule');
     const btnDecryptRule = document.getElementById('btn-decrypt-rule');
+    
+    // 图片配置
+    const btnImageEncode = document.getElementById('btn-image-encode');
     const imageFileInputEncode = document.getElementById('image-file-input-encode'); 
+    const btnImageDecode = document.getElementById('btn-image-decode');
     const imageFileInputDecode = document.getElementById('image-file-input-decode'); 
+
+    // 通用
     const btnPaste = document.getElementById('btn-paste');
     const btnCopy = document.getElementById('btn-copy');
     const btnClear = document.getElementById('btn-clear');
 
-    // --- 核心工具函数 (Toast, VOD 加解密, Base64 辅助等逻辑不变) ---
+    // --- 核心工具函数 ---
     
-    function processKeyToWords(keyString) { /* ... */ }
+    function processKeyToWords(keyString) {
+        return CryptoJS.enc.Utf8.parse(keyString.toString().padEnd(16, '0'));
+    }
+
     function showToast(message) { 
         const toast = document.createElement('div'); 
         toast.textContent = message; 
@@ -35,13 +48,18 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(toast); 
         }, 2000); 
     }
+
+    // LSB 辅助函数（用于 Base64 拼接的辅助函数）
     function extractCipherText(imageTextString) {
         const separator = '**';
         const parts = imageTextString.split(separator);
         if (parts.length < 2) return null;
-        return parts[1];
+        // 清理 Base64 密文可能携带的前缀
+        return parts[1].replace(/buuoZEQO/g, '').trim(); 
     }
-    function encryptVod(data, keyString, ivString) { /* ... */ 
+    
+    // --- VOD 加密解密 (修复后的版本) ---
+    function encryptVod(data, keyString, ivString) {
         const key = processKeyToWords(keyString);
         const iv = processKeyToWords(ivString);
         const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv });
@@ -50,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ivHex = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(ivString));
         return "2423" + keyHex + "2324" + encryptedHex + ivHex;
     }
+
     function decryptVod(ciphertext, ivString) {
         try {
             if (!ciphertext.startsWith("2423") || !ciphertext.includes("2324")) return null;
@@ -72,6 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
+
+    // --- 凤凰系统加解密核心 ---
     function encryptAes(data, key, iv) {
         const keyHex = CryptoJS.enc.Utf8.parse(key);
         const ivHex = CryptoJS.enc.Utf8.parse(iv);
@@ -120,49 +141,55 @@ document.addEventListener('DOMContentLoaded', () => {
          }
     });
 
-    // --- “配置转图片”隐写事件 (数据流拼接模式 - 最终修复版) ---
+    // --- “配置转图片”隐写事件 (内置 BMP 模板) ---
     
-    // 文件选择后处理隐写 (只监听 change 事件)
-    if(imageFileInputEncode) imageFileInputEncode.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+    // 按钮点击触发文件选择
+    if(btnImageEncode) btnImageEncode.addEventListener('click', () => {
+        handleImageEncode(); 
+    });
 
+    // 隐写逻辑
+    function handleImageEncode() {
         const textToHide = mainInput.value;
         if (!textToHide) {
             showToast('请先输入要隐藏的密文！');
             return;
         }
         
-        // 1. 对 VOD 密文进行二次 Base64 编码 (三层编码的第二层)
+        // 1. 对 VOD 密文进行二次 Base64 编码
         const vodCipherWords = CryptoJS.enc.Utf8.parse(textToHide);
         const secondaryBase64 = CryptoJS.enc.Base64.stringify(vodCipherWords);
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // 2. 提取图片的 Base64 内容
-            const imageBase64 = e.target.result.split(',')[1];
-            
-            // 3. 拼接核心数据：图片 Base64 + ** + 二次 Base64 密文
-            const finalOutput = imageBase64 + "**" + secondaryBase64;
+        // 2. 使用内置的 1x1 像素 BMP 图片 Base64 模板
+        const imageBase64 = 'Qk0eAAAAAAD+AAAAAAABAAABABgAAAAAABQAAAD/AAAA///wAAAA/wAAAP8=';
+        
+        // 3. 拼接核心数据：图片 Base64 + 你的分隔符 + 二次 Base64 密文
+        const finalOutput = imageBase64 + "buuoZEQO**" + secondaryBase64;
 
-            // 4. 触发下载
-            const blob = new Blob([finalOutput], { type: 'text/plain' }); 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'waner_config_image.bmp'; // 强制后缀为 BMP
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showToast('配置字符串已生成并下载为 BMP 文件！');
-        };
-        reader.readAsDataURL(file); // 读取为 Base64 格式
-        event.target.value = ''; // 清空，确保下次选择同一文件能触发 change
-    });
+        // 4. 触发下载
+        const blob = new Blob([finalOutput], { type: 'text/plain' }); 
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'waner_config_image.bmp'; // 强制后缀为 BMP
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('配置字符串已生成并下载为 BMP 文件！');
+    }
 
     // --- 提取图片密文（解密）事件 (数据流拼接模式) ---
+
+    // 按钮点击触发文件选择
+    if(btnImageDecode) btnImageDecode.addEventListener('click', () => {
+         if(imageFileInputDecode) {
+             imageFileInputDecode.click();
+         } else {
+             showToast('错误：找不到文件选择元素！');
+         }
+    });
 
     // 文件选择后处理解密
     if(imageFileInputDecode) imageFileInputDecode.addEventListener('change', (event) => {
@@ -177,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (parts.length >= 2) {
                 // 提取二次 Base64 密文 (清理多余前缀)
-                const extractedBase64Cipher = parts[1].replace(/CAOSBjTG/g, '').trim(); 
+                const extractedBase64Cipher = parts[1].replace(/buuoZEQO/g, '').trim(); 
 
                 try {
                     // 1. Base64 解码，还原成 VOD 密文（Hex）
