@@ -47,25 +47,21 @@
         
         <!-- 婉儿修复并新增的图片配置工具 -->
         <fieldset>
-            <legend>图片配置工具 (拼接密文)</legend>
+            <legend>图片配置工具 (内置模板)</legend>
             <div class="button-group">
                 
-                <!-- 隐写按钮：使用绝对定位覆盖输入框 -->
-                <div class="button-wrapper">
-                    <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
-                    <!-- 文件输入框直接覆盖在按钮上 -->
-                    <input type="file" id="image-file-input-encode" accept="image/*" class="file-input-overlay">
-                </div>
+                <!-- 隐写按钮：直接点击即可 -->
+                <button id="btn-image-encode" style="background-color: #722ed1;">配置转图片 (隐写)</button>
                 
-                <!-- 提取按钮：使用绝对定位覆盖输入框 -->
+                <!-- 提取按钮：保留文件选择 -->
                 <div class="button-wrapper">
                     <button id="btn-image-decode" style="background-color: #eb2f96;">提取图片密文</button>
-                    <!-- 文件输入框直接覆盖在按钮上 -->
-                    <input type="file" id="image-file-input-decode" accept="image/*" class="file-input-overlay">
+                    <input type="file" id="image-file-input-decode" accept=".bmp,.txt" class="file-input-overlay">
                 </div>
                 
             </div>
         </fieldset>
+
 
         <fieldset>
             <legend>凤凰系统工具 (可正常使用)</legend>
@@ -78,6 +74,7 @@
         </fieldset>
 
     </div>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="./app.js"></script>
