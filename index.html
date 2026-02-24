@@ -38,7 +38,7 @@
         <fieldset>
             <legend>VOD线路仓工具 (最终修复版)</legend>
             <input type="text" id="vod-key-input" placeholder="请输入VOD的Key">
-            <input type="text" id="vod-iv-input" placeholder="请输入VOD的IV">
+            <input type="text" id="vod-iv-input" placeholder="请输入VOD的IV (默认: 1769600952204)">
             <div class="button-group">
                 <button id="btn-encrypt-vod" style="background-color: #52c41a;">加密(VOD)</button>
                 <button id="btn-decrypt-vod" style="background-color: #faad14;">解密(VOD)</button>
@@ -75,9 +75,7 @@
 
     </div>
 
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="./app.js"></script>
-
+    <script src="app.js"></script>
 </body>
 </html>
